@@ -34,7 +34,6 @@ pipeline {
                 }
             }
         }
-    }
         stage('Check Status'){
             steps{
                 script{
