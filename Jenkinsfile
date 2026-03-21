@@ -19,22 +19,6 @@ pipeline {
     }
     // Build
     stages {
-        stage('Deploy') {
-            steps {
-                script {
-                    withAWS(credentials: 'aws-creds', region: 'us-east-1') {
-                        sh """
-                            aws eks update-kubeconfig --region $REGION --name "$PROJECT-${params.deploy_to}"
-                            kubectl get nodes
-                            kubectl apply -f 01-namespace.yaml
-                            sed -i "s/IMAGE_VERSION/${params.appVersion}/g" values-${params.deploy_to}.yaml
-                            helm upgrade --install $COMPONENT -f values-${params.deploy_to}.yaml -n $PROJECT .
-                            #kubectl apply -f application.yaml
-                        """
-                    }
-                }
-            }
-        }
         stage('Check Status'){
             steps{
                 script{
@@ -59,7 +43,23 @@ pipeline {
                     }
                 }
             }
-        }        
+        }      
+        stage('Deploy') {
+            steps {
+                script {
+                    withAWS(credentials: 'aws-creds', region: 'us-east-1') {
+                        sh """
+                            aws eks update-kubeconfig --region $REGION --name "$PROJECT-${params.deploy_to}"
+                            kubectl get nodes
+                            kubectl apply -f 01-namespace.yaml
+                            sed -i "s/IMAGE_VERSION/${params.appVersion}/g" values-${params.deploy_to}.yaml
+                            helm upgrade --install $COMPONENT -f values-${params.deploy_to}.yaml -n $PROJECT .
+                            #kubectl apply -f application.yaml
+                        """
+                    }
+                }
+            }
+        }  
         // API Testing
         stage('Functional Testing'){
             when{
@@ -74,7 +74,7 @@ pipeline {
         // All components testing
         stage('Integration Testing'){
             when{
-                expression { params.deploy_to = "qa" }
+                expression { params.deploy_to == "qa" }
             }
              steps{
                 script{
@@ -84,7 +84,7 @@ pipeline {
         }
         stage('PROD Deploy') {
             when{
-                expression { params.deploy_to = "prod" }
+                expression { params.deploy_to == "prod" }
             }
             steps {
                 script {
